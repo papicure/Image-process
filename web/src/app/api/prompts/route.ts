@@ -30,6 +30,13 @@ const youMindNanoBananaProRawBase = "https://raw.githubusercontent.com/YouMind-O
 const davidWuGptImage2RawBase = "https://raw.githubusercontent.com/davidwuw0811-boop/awesome-gpt-image2-prompts/main";
 const gptImage2CaseFiles = ["README.md", "cases/ad-creative.md", "cases/character.md", "cases/comparison.md", "cases/ecommerce.md", "cases/portrait.md", "cases/poster.md", "cases/ui.md"];
 const cacheTtlMs = 1000 * 60 * 60;
+const ZH_PROMPT = "\u63d0\u793a\u8bcd";
+const ZH_PROMPT_TEXT = "\u63d0\u793a\u8bcd\u6587\u672c";
+const ZH_FETCH_FAILED = "\u62c9\u53d6\u5931\u8d25";
+const ZH_AND = "\u4e0e";
+const ZH_TAG_SEPARATOR = "\u3001";
+const ZH_NEEDS_REFERENCE = "\u9700\u8981\u53c2\u8003\u56fe";
+const ZH_ALL = "\u5168\u90e8";
 
 const categories: PromptCategory[] = [
     { category: "gpt-image-2-prompts", githubUrl: "https://github.com/EvoLinkAI/awesome-gpt-image-2-API-and-Prompts", build: buildGptImage2Prompts },
@@ -112,7 +119,8 @@ async function buildGptImage2Prompts() {
 }
 
 function collectGptImage2Cases(cases: Map<string, string>, markdown: string) {
-    for (const match of markdown.matchAll(/### Case \d+: \[[^\]]+]\(([^)]+)\).*?\*\*Prompt:\*\*\s*\r?\n\s*```[\w-]*\r?\n(.*?)\r?\n```/gs)) {
+    const casePattern = new RegExp("### Case \\d+: \\[[^\\]]+]\\(([^)]+)\\).*?\\*\\*Prompt:\\*\\*\\s*\\r?\\n\\s*```[\\w-]*\\r?\\n(.*?)\\r?\\n```", "gs");
+    for (const match of markdown.matchAll(casePattern)) {
         cases.set(match[1], match[2].trim());
     }
 }
@@ -124,7 +132,7 @@ async function buildAwesomeGptImagePrompts() {
         const tags = tagsFromHeading(firstMatch(section, /^##\s+(.+)$/m));
         for (const block of splitBeforeHeading(section, "### ")) {
             const title = firstMatch(block, /^###\s+(.+)$/m).replace(/\[([^\]]+)]\([^)]+\)/g, "$1").trim();
-            const prompt = firstMatch(block, /\*\*提示词:\*\*\s*\r?\n\s*```[\w-]*\r?\n(.*?)\r?\n```/s).trim();
+            const prompt = firstMatch(block, new RegExp("\\*\\*" + ZH_PROMPT + ":\\*\\*\\s*\\r?\\n\\s*```[\\w-]*\\r?\\n(.*?)\\r?\\n```", "s")).trim();
             if (!title || !prompt) continue;
             const images = extractMarkdownImages(awesomeGptImageRawBase, block);
             items.push(defaultPrompt(`awesome-gpt-image-${leftPad(items.length + 1)}`, title, prompt, images[0] || "", tags, markdownPreview(images)));
@@ -138,7 +146,7 @@ async function buildAwesomeGpt4oImagePrompts() {
     const items: Omit<Prompt, "category" | "githubUrl">[] = [];
     for (const block of splitBeforeHeading(markdown, "### ")) {
         const title = firstMatch(block, /^###\s+(.+)$/m).trim();
-        const prompt = firstMatch(block, /- \*\*提示词文本：\*\*\s*`(.*?)`/s).trim();
+        const prompt = firstMatch(block, new RegExp("- \\*\\*" + ZH_PROMPT_TEXT + "\\uFF1A\\*\\*\\s*`(.*?)`", "s")).trim();
         if (!title || !prompt) continue;
         const images = extractMarkdownImages(awesomeGpt4oImagePromptsBase, block);
         items.push(defaultPrompt(`awesome-gpt4o-image-prompts-${leftPad(items.length + 1)}`, title, prompt, images[0] || "", ["gpt4o"], markdownPreview(images)));
@@ -151,7 +159,7 @@ async function buildYouMindPrompts(baseUrl: string, idPrefix: string, modelTag: 
     const items: Omit<Prompt, "category" | "githubUrl">[] = [];
     for (const block of splitBeforeHeading(markdown, "### ")) {
         const title = firstMatch(block, /^###\s+No\.\s*\d+:\s*(.+)$/m).trim();
-        const prompt = firstMatch(block, /#### .*?提示词\s*\r?\n\s*```[\w-]*\r?\n(.*?)\r?\n```/s).trim();
+        const prompt = firstMatch(block, new RegExp("#### .*?" + ZH_PROMPT + "\\s*\\r?\\n\\s*```[\\w-]*\\r?\\n(.*?)\\r?\\n```", "s")).trim();
         if (!title || !prompt) continue;
         const images = extractMarkdownImages(baseUrl, block);
         items.push(defaultPrompt(`${idPrefix}-${leftPad(items.length + 1)}`, title, prompt, images[0] || "", youMindTags(title, modelTag), markdownPreview(images)));
@@ -179,7 +187,7 @@ function defaultPrompt(id: string, title: string, prompt: string, coverUrl: stri
 
 async function fetchText(baseUrl: string, file: string) {
     const response = await fetch(`${baseUrl}/${file}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`${file} 拉取失败`);
+    if (!response.ok) throw new Error(`${file} ${ZH_FETCH_FAILED}`);
     return response.text();
 }
 
@@ -220,7 +228,7 @@ function tagsFromCategory(category: string) {
 }
 
 function tagsFromHeading(heading: string) {
-    return splitTags(heading.replace(/[^\p{L}\p{N}/&、与 ]/gu, ""), /\s*(?:\/|&|、|与)\s*/);
+    return splitTags(heading.replace(new RegExp(`[^\\p{L}\\p{N}/&${ZH_TAG_SEPARATOR}${ZH_AND} ]`, "gu"), ""), new RegExp(`\\s*(?:/|&|${ZH_TAG_SEPARATOR}|${ZH_AND})\\s*`));
 }
 
 function youMindTags(title: string, modelTag: string) {
@@ -230,7 +238,7 @@ function youMindTags(title: string, modelTag: string) {
 
 function davidWuTags(item: { category_cn?: string; category?: string; author?: string; source?: string; needs_ref?: boolean }) {
     const tags = splitTags([item.category_cn, item.category, item.author, item.source].filter(Boolean).join("/"), /\//);
-    if (item.needs_ref) tags.push("需要参考图");
+    if (item.needs_ref) tags.push(ZH_NEEDS_REFERENCE);
     return tags;
 }
 
@@ -254,5 +262,5 @@ function leftPad(value: number) {
 }
 
 function isActiveOption(value: string) {
-    return value && value !== "全部" && value !== "all";
+    return value && value !== ZH_ALL && value !== "all";
 }

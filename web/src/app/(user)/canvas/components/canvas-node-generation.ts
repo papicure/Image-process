@@ -1,3 +1,4 @@
+import { tr } from "@/i18n/runtime";
 import type { AiTextMessage } from "@/services/api/image";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { seedanceReferenceLabel } from "@/lib/seedance-video";
@@ -154,7 +155,7 @@ function generationLabel(type: NodeGenerationInput["type"], index: number) {
     if (type === "image") return imageReferenceLabel(index);
     if (type === "video") return seedanceReferenceLabel("video", index);
     if (type === "audio") return seedanceReferenceLabel("audio", index);
-    return `文本${index + 1}`;
+    return tr("canvas.composer.textReference", { index: index + 1 });
 }
 
 function readReferenceImage(node: CanvasNodeData): ReferenceImage | null {

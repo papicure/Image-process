@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Empty, Input, Modal, Pagination, Tag } from "antd";
 import { Search } from "lucide-react";
 
+import { useI18n } from "@/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
 import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 
@@ -13,11 +14,21 @@ type Props = {
     open: boolean;
     onInsert: (payload: InsertAssetPayload) => void;
     onClose: () => void;
+    defaultTab?: "my-assets";
 };
 
 export function AssetPickerModal({ open, onInsert, onClose }: Props) {
+    const { t } = useI18n();
     return (
-        <Modal title="选择素材" open={open} onCancel={onClose} footer={null} width={860} destroyOnHidden styles={{ body: { padding: "0 24px 24px", minHeight: 480 } }}>
+        <Modal
+            title={t("canvas.assetPicker.title")}
+            open={open}
+            onCancel={onClose}
+            footer={null}
+            width={900}
+            destroyOnHidden
+            styles={{ body: { padding: "0 24px 24px", minHeight: 480 } }}
+        >
             <MyAssetsTab onInsert={onInsert} />
         </Modal>
     );
@@ -26,36 +37,39 @@ export function AssetPickerModal({ open, onInsert, onClose }: Props) {
 const PAGE_SIZE = 8;
 
 const kindOptions = [
-    { label: "全部", value: "all" },
-    { label: "文本", value: "text" },
-    { label: "图片", value: "image" },
-    { label: "视频", value: "video" },
+    { labelKey: "assets.kind.all", value: "all" },
+    { labelKey: "assets.kind.text", value: "text" },
+    { labelKey: "assets.kind.image", value: "image" },
+    { labelKey: "assets.kind.video", value: "video" },
 ];
 
 function PickerCard({ title, kind, cover, onClick }: { title: string; kind: string; cover: string; onClick: () => void }) {
+    const { t } = useI18n();
     return (
         <button
             type="button"
-            className="group relative cursor-pointer overflow-hidden rounded-lg border border-stone-200 bg-white text-left transition hover:border-stone-400 hover:shadow-md dark:border-stone-700 dark:bg-stone-900 dark:hover:border-stone-500"
+            className="group relative cursor-pointer overflow-hidden rounded-lg border text-left transition hover:shadow-[0_0_0_1px_var(--papi-glow),0_18px_38px_rgba(0,0,0,.22)]"
+            style={{ borderColor: "var(--papi-border)", background: "var(--papi-panel)", color: "var(--papi-ink)" }}
             onClick={onClick}
         >
             {cover ? (
                 <img src={cover} alt={title} className="aspect-[4/3] w-full object-cover" />
             ) : (
-                <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 p-3 text-center text-xs leading-5 text-stone-500 dark:bg-stone-800 dark:text-stone-400">{title}</div>
+                <div className="flex aspect-[4/3] items-center justify-center p-3 text-center text-xs leading-5" style={{ background: "var(--papi-bg)", color: "var(--papi-muted)" }}>{title}</div>
             )}
             <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
-                    <span className="line-clamp-1 text-xs font-medium text-stone-800 dark:text-stone-200">{title}</span>
-                    <Tag className="m-0 shrink-0 text-[10px]">{kind === "image" ? "图片" : kind === "video" ? "视频" : "文本"}</Tag>
+                    <span className="line-clamp-1 text-xs font-medium">{title}</span>
+                    <Tag className="m-0 shrink-0 rounded-md border text-[10px]" style={{ borderColor: "var(--papi-border)", background: "var(--papi-accent-soft)", color: "var(--papi-accent)" }}>{assetKindLabel(kind, t)}</Tag>
                 </div>
             </div>
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-stone-950/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-stone-950/55 group-hover:opacity-100">插入</div>
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-medium text-white opacity-0 transition group-hover:bg-black/60 group-hover:opacity-100">{t("canvas.assetPicker.insert")}</div>
         </button>
     );
 }
 
 function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => void }) {
+    const { t } = useI18n();
     const assets = useAssetStore((state) => state.assets);
     const [keyword, setKeyword] = useState("");
     const [kindFilter, setKindFilter] = useState("all");
@@ -86,12 +100,12 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center gap-3 border-b py-3" style={{ borderColor: "var(--papi-border)", background: "var(--papi-surface)" }}>
                 <Input
-                    className="w-56"
-                    size="small"
-                    prefix={<Search className="size-3.5 text-stone-400" />}
-                    placeholder="搜索素材"
+                    className="w-64"
+                    size="middle"
+                    prefix={<Search className="size-3.5" style={{ color: "var(--papi-muted)" }} />}
+                    placeholder={t("canvas.assetPicker.search")}
                     value={keyword}
                     allowClear
                     onChange={(e) => {
@@ -110,20 +124,20 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
                                 setKindFilter(opt.value);
                             }}
                         >
-                            {opt.label}
+                            {t(opt.labelKey)}
                         </Tag.CheckableTag>
                     ))}
                 </div>
             </div>
 
             {visible.length ? (
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {visible.map((asset) => (
                         <PickerCard key={asset.id} title={asset.title} kind={asset.kind} cover={asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : "")} onClick={() => handleInsert(asset)} />
                     ))}
                 </div>
             ) : (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="没有素材" className="py-12" />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("canvas.assetPicker.empty")} className="py-12" />
             )}
 
             {filtered.length > PAGE_SIZE && (
@@ -133,4 +147,10 @@ function MyAssetsTab({ onInsert }: { onInsert: (payload: InsertAssetPayload) => 
             )}
         </div>
     );
+}
+
+function assetKindLabel(kind: string, t: (key: string) => string) {
+    if (kind === "image") return t("assets.kind.image");
+    if (kind === "video") return t("assets.kind.video");
+    return t("assets.kind.text");
 }

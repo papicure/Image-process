@@ -3,6 +3,7 @@
 import localforage from "localforage";
 
 import { nanoid } from "nanoid";
+import { tr } from "@/i18n/runtime";
 import { readImageMeta } from "@/lib/image-utils";
 
 export type UploadedImage = {
@@ -86,7 +87,7 @@ function blobToDataUrl(blob: Blob) {
     return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ""));
-        reader.onerror = () => reject(new Error("读取图片失败"));
+        reader.onerror = () => reject(new Error(tr("image.error.readFailed")));
         reader.readAsDataURL(blob);
     });
 }

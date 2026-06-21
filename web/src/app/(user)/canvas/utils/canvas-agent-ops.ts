@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 
+import { tr } from "@/i18n/runtime";
 import { getNodeSpec } from "../constants";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData, type CanvasNodeMetadata, type ViewportTransform } from "../types";
 
@@ -29,8 +30,8 @@ export function summarizeCanvasAgentOps(ops?: CanvasAgentOp[]) {
         return acc;
     }, {});
     return Object.entries(counts)
-        .map(([type, count]) => `${opLabel(type)} ${count}`)
-        .join("，");
+        .map(([type, count]) => tr("canvas.agentOps.item", { label: opLabel(type), count }))
+        .join(tr("common.listSeparator"));
 }
 
 export function applyCanvasAgentOps(snapshot: CanvasAgentSnapshot, ops?: CanvasAgentOp[]) {
@@ -84,13 +85,13 @@ export function applyCanvasAgentOps(snapshot: CanvasAgentSnapshot, ops?: CanvasA
 }
 
 function opLabel(type: string) {
-    if (type === "add_node") return "新增节点";
-    if (type === "update_node") return "更新节点";
-    if (type === "delete_node") return "删除节点";
-    if (type === "delete_connections") return "删除连线";
-    if (type === "connect_nodes") return "连接";
-    if (type === "set_viewport") return "调整视图";
-    if (type === "select_nodes") return "选择节点";
-    if (type === "run_generation") return "触发生成";
+    if (type === "add_node") return tr("canvas.agentOps.addNode");
+    if (type === "update_node") return tr("canvas.agentOps.updateNode");
+    if (type === "delete_node") return tr("canvas.agentOps.deleteNode");
+    if (type === "delete_connections") return tr("canvas.agentOps.deleteConnections");
+    if (type === "connect_nodes") return tr("canvas.agentOps.connectNodes");
+    if (type === "set_viewport") return tr("canvas.agentOps.setViewport");
+    if (type === "select_nodes") return tr("canvas.agentOps.selectNodes");
+    if (type === "run_generation") return tr("canvas.agentOps.runGeneration");
     return type;
 }

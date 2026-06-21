@@ -3,65 +3,60 @@
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
-import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
 import { AppConfigModal } from "@/components/layout/app-config-modal";
 import { MobileNavDrawer } from "@/components/layout/mobile-nav-drawer";
 import { UserStatusActions } from "@/components/layout/user-status-actions";
+import { navigationTools, type NavigationToolSlug } from "@/constant/navigation-tools";
+import { useI18n } from "@/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 
 export function AppTopNav() {
+    const { t } = useI18n();
     const pathname = usePathname();
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const hideHeader = /^\/canvas\/[^/]+/.test(pathname);
-    const slug = pathname.split("/").filter(Boolean)[0];
+    const slug = pathname.split("/").filter(Boolean)[0] || "";
     const activeToolSlug = navigationTools.some((tool) => tool.slug === slug) ? (slug as NavigationToolSlug) : undefined;
 
     return (
         <>
             {!hideHeader ? (
-                <header className="sticky top-0 z-20 h-16 shrink-0 border-b border-stone-200 bg-background/90 backdrop-blur-xl dark:border-stone-800">
-                    <div className="mx-auto flex h-full max-w-7xl items-stretch justify-between gap-5 px-6">
+                <header className="sticky top-0 z-20 h-14 w-full shrink-0 overflow-hidden border-b border-[var(--papi-border)] bg-[color-mix(in_oklab,var(--papi-bg)_92%,transparent)] shadow-[0_1px_0_rgba(255,255,255,0.035),0_0_24px_var(--papi-glow)] backdrop-blur-xl">
+                    <div className="mx-auto flex h-full w-full min-w-0 max-w-[1600px] items-stretch justify-between gap-2 px-3 sm:gap-4 sm:px-5">
                         <div className="flex min-w-0 items-center">
-                            <Link href="/" className="flex h-full shrink-0 items-center gap-2 text-sm font-semibold leading-none tracking-tight text-stone-950 transition hover:text-stone-600 dark:text-stone-100 dark:hover:text-stone-300">
-                                <span
-                                    className="size-5 shrink-0 bg-current"
-                                    style={{
-                                        mask: "url(/logo.svg) center / contain no-repeat",
-                                        WebkitMask: "url(/logo.svg) center / contain no-repeat",
-                                    }}
-                                />
-                                <span className="text-base font-medium">无限画布</span>
+                            <Link href="/" className="group flex h-full shrink-0 items-center text-[var(--papi-ink)] transition hover:text-[var(--papi-accent)]">
+                                <span className="text-xl font-semibold leading-none">{t("common.appName")}</span>
                             </Link>
 
                             <button
                                 type="button"
-                                className="ml-3 inline-flex size-8 shrink-0 items-center justify-center text-stone-600 transition hover:text-stone-950 md:hidden dark:text-stone-300 dark:hover:text-white"
+                                className="ml-3 inline-flex size-9 shrink-0 items-center justify-center rounded-md border border-[var(--papi-border)] text-[var(--papi-muted)] transition hover:bg-[var(--papi-panel)] hover:text-[var(--papi-ink)] md:hidden"
                                 onClick={() => setMobileNavOpen(true)}
-                                aria-label="打开导航菜单"
-                                title="导航菜单"
+                                aria-label={t("nav.open")}
+                                title={t("nav.title")}
                             >
                                 <Menu className="size-5" />
                             </button>
 
-                            <nav className="hide-scrollbar ml-8 hidden h-16 min-w-0 items-center gap-7 overflow-x-auto md:flex">
+                            <nav className="hide-scrollbar ml-7 hidden h-14 min-w-0 items-center gap-1 overflow-x-auto md:flex">
                                 {navigationTools.map((tool) => {
                                     const Icon = tool.icon;
                                     const active = tool.slug === activeToolSlug;
                                     return (
                                         <Link
-                                            key={tool.slug}
-                                            href={`/${tool.slug}`}
+                                            key={tool.slug || "overview"}
+                                            href={tool.slug ? `/${tool.slug}` : "/"}
                                             className={cn(
-                                                "relative flex h-16 shrink-0 items-center gap-2 text-sm leading-6 transition after:absolute after:inset-x-0 after:bottom-0 after:h-px",
+                                                "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-md border px-2.5 text-sm leading-6 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--papi-accent)]",
                                                 active
-                                                    ? "font-medium text-stone-950 after:bg-stone-950 dark:text-stone-100 dark:after:bg-stone-100"
-                                                    : "text-stone-500 after:bg-transparent hover:text-stone-950 dark:text-stone-400 dark:hover:text-stone-100",
+                                                    ? "border-[color-mix(in_oklab,var(--papi-accent)_42%,var(--papi-border))] bg-[var(--papi-panel)] font-semibold text-[var(--papi-ink)] shadow-[0_0_18px_var(--papi-glow)]"
+                                                    : "border-transparent text-[var(--papi-muted)] hover:border-[var(--papi-border)] hover:bg-[var(--papi-panel)] hover:text-[var(--papi-ink)]",
                                             )}
-                                        >
+                                            >
                                             <Icon className="size-4" />
-                                            <span className="truncate">{tool.label}</span>
+                                            <span className="truncate">{t(tool.labelKey)}</span>
                                         </Link>
                                     );
                                 })}
@@ -69,7 +64,7 @@ export function AppTopNav() {
                         </div>
 
                         <div className="my-auto flex h-9 min-w-0 items-center justify-end gap-2 justify-self-end whitespace-nowrap">
-                            <UserStatusActions />
+                            <UserStatusActions compactOnMobile />
                         </div>
                     </div>
                 </header>

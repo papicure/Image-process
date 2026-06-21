@@ -5,6 +5,8 @@ import { ArrowUp, LoaderCircle, Square } from "lucide-react";
 import { Button } from "antd";
 
 import { ModelPicker } from "@/components/model-picker";
+import { tr } from "@/i18n/runtime";
+import { useI18n } from "@/i18n/i18n-provider";
 import { defaultConfig, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -31,6 +33,7 @@ type CanvasNodePromptPanelProps = {
 };
 
 export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfigChange, onGenerate, onStop, mentionReferences = [], onImageSettingsOpenChange }: CanvasNodePromptPanelProps) {
+    const { t } = useI18n();
     const globalConfig = useEffectiveConfig();
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
@@ -111,14 +114,14 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
                     danger={isRunning}
                     disabled={!isRunning && !prompt.trim()}
                     onClick={() => (isRunning ? onStop(node.id) : submit())}
-                    aria-label={isRunning ? "停止生成" : "生成"}
+                    aria-label={isRunning ? t("canvas.config.stop") : t("workbench.common.generate")}
                 >
                     <span className="flex items-center gap-1.5">
                         {isRunning ? (
                             <>
                                 <LoaderCircle className="size-4 animate-spin" />
                                 <Square className="size-3.5 fill-current" />
-                                <span className="text-xs font-medium">停止</span>
+                                <span className="text-xs font-medium">{t("canvas.config.stop")}</span>
                             </>
                         ) : (
                             <>
@@ -160,10 +163,10 @@ function buildNodeConfig(globalConfig: AiConfig, node: CanvasNodeData, mode: Can
 }
 
 function promptPlaceholder(mode: CanvasNodeGenerationMode, hasImageContent: boolean, hasTextContent: boolean) {
-    if (mode === "video") return "描述要生成的视频内容";
-    if (mode === "audio") return "描述要生成的音频内容";
-    if (mode === "image") return hasImageContent ? "请输入你想要把这张图修改成什么" : "描述要生成的图片内容";
-    return hasTextContent ? "请输入你想要将本段文本修改成什么" : "请输入你想要生成的文本内容";
+    if (mode === "video") return tr("canvas.prompt.placeholder.video");
+    if (mode === "audio") return tr("canvas.prompt.placeholder.audio");
+    if (mode === "image") return hasImageContent ? tr("canvas.prompt.placeholder.editImage") : tr("canvas.prompt.placeholder.image");
+    return hasTextContent ? tr("canvas.prompt.placeholder.editText") : tr("canvas.prompt.placeholder.text");
 }
 
 function videoConfigPatch(key: keyof AiConfig, value: string) {

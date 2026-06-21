@@ -5,9 +5,11 @@ import { useEffect } from "react";
 import { ProConfigProvider } from "@ant-design/pro-components";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App, ConfigProvider } from "antd";
+import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
 
 import { ClientRootInit } from "@/components/layout/client-root-init";
+import { I18nProvider, useI18n } from "@/i18n/i18n-provider";
 import { getAntThemeConfig } from "@/lib/app-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
 
@@ -22,7 +24,16 @@ const queryClient = new QueryClient({
 });
 
 export function AppProviders({ children }: { children: ReactNode }) {
+    return (
+        <I18nProvider>
+            <ThemedAppProviders>{children}</ThemedAppProviders>
+        </I18nProvider>
+    );
+}
+
+function ThemedAppProviders({ children }: { children: ReactNode }) {
     const theme = useThemeStore((state) => state.theme);
+    const { locale } = useI18n();
     const dark = theme === "dark";
 
     useEffect(() => {
@@ -31,7 +42,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }, [dark, theme]);
 
     return (
-        <ConfigProvider locale={zhCN} theme={getAntThemeConfig(dark)}>
+        <ConfigProvider locale={locale === "zh-CN" ? zhCN : enUS} theme={getAntThemeConfig(dark)}>
             <ProConfigProvider dark={dark}>
                 <App>
                     <QueryClientProvider client={queryClient}>

@@ -55,7 +55,7 @@ export const useCanvasAgentStore = create<CanvasAgentStore>((set) => ({
     loadingThreads: false,
     activeTab: "setup",
     confirmTools: true,
-    activity: "就绪",
+    activity: "Ready",
     connectError: "",
     pendingTool: null,
     setAgentState: (patch) => set(patch),

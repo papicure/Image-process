@@ -1,3 +1,4 @@
+import { tr } from "@/i18n/runtime";
 import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import { seedanceReferenceLabel } from "@/lib/seedance-video";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData } from "../types";
@@ -82,7 +83,7 @@ function labelForKind(kind: CanvasResourceKind, index: number) {
     if (kind === "image") return imageReferenceLabel(index);
     if (kind === "video") return seedanceReferenceLabel("video", index);
     if (kind === "audio") return seedanceReferenceLabel("audio", index);
-    return `文本${index + 1}`;
+    return tr("canvas.composer.textReference", { index: index + 1 });
 }
 
 function isResourceNode(node: CanvasNodeData) {

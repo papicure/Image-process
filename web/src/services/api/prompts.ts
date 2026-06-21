@@ -1,3 +1,4 @@
+import { tr } from "@/i18n/runtime";
 import { compactApiParams, serializeApiParams } from "@/services/api/request";
 
 export type Prompt = {
@@ -13,7 +14,7 @@ export type Prompt = {
     updatedAt: string;
 };
 
-export const ALL_PROMPTS_OPTION = "全部";
+export const ALL_PROMPTS_OPTION = "all";
 
 export type PromptListResponse = {
     items: Prompt[];
@@ -33,7 +34,7 @@ export async function fetchPrompts({ keyword = "", tag = [], category = ALL_PROM
         }),
     );
     const response = await fetch(`/api/prompts${params.size ? `?${params}` : ""}`);
-    if (!response.ok) throw new Error("获取提示词失败");
+    if (!response.ok) throw new Error(tr("prompts.error.fetchFailed"));
     return (await response.json()) as PromptListResponse;
 }
 

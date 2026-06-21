@@ -1,49 +1,45 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { BookOpen, Keyboard, Settings2 } from "lucide-react";
+import { Keyboard, Languages, Settings2 } from "lucide-react";
 
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import { GitHubLink } from "@/components/layout/github-link";
-import { VersionReleaseModal } from "@/components/layout/version-release-modal";
-import { DOCS_URL } from "@/constant/env";
-import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/i18n-provider";
 import { canvasThemes } from "@/lib/canvas-theme";
+import { cn } from "@/lib/utils";
 import { useConfigStore } from "@/stores/use-config-store";
 import { useThemeStore } from "@/stores/use-theme-store";
 
 type UserStatusActionsProps = {
     showConfig?: boolean;
+    compactOnMobile?: boolean;
     variant?: "default" | "canvas";
     onOpenShortcuts?: () => void;
 };
 
-export function UserStatusActions({ showConfig = true, variant = "default", onOpenShortcuts }: UserStatusActionsProps) {
+export function UserStatusActions({ showConfig = true, compactOnMobile = false, variant = "default", onOpenShortcuts }: UserStatusActionsProps) {
+    const { locale, setLocale, t } = useI18n();
     const theme = useThemeStore((state) => state.theme);
     const setTheme = useThemeStore((state) => state.setTheme);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const canvasTheme = canvasThemes[theme];
-    const naturalIconClass = "inline-flex size-7 shrink-0 items-center justify-center text-stone-600 transition hover:text-stone-950 dark:text-stone-300 dark:hover:text-white [&_svg]:size-4";
+    const iconClass =
+        "inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md border border-transparent text-[var(--papi-muted)] transition hover:border-[var(--papi-border)] hover:bg-[var(--papi-panel)] hover:text-[var(--papi-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--papi-accent)] [&_svg]:size-4";
     const iconStyle: CSSProperties | undefined = variant === "canvas" ? { color: canvasTheme.node.text } : undefined;
-    const versionStyle = iconStyle;
-    const gitHubClassName = "size-7 text-base";
-    const gitHubStyle = iconStyle;
 
     return (
         <div className="inline-flex shrink-0 items-center gap-1">
-            <a href={DOCS_URL} target="_blank" rel="noopener noreferrer" className={naturalIconClass} style={iconStyle} aria-label="文档" title="文档">
-                <BookOpen className="size-4" />
-            </a>
             {showConfig ? (
-                <button type="button" className={naturalIconClass} style={iconStyle} onClick={() => openConfigDialog(false)} aria-label="配置" title="配置">
+                <button type="button" className={iconClass} style={iconStyle} onClick={() => openConfigDialog(false)} aria-label={t("common.settings")} title={t("common.settings")}>
                     <Settings2 className="size-4" />
                 </button>
             ) : null}
-            <AnimatedThemeToggler theme={theme} onThemeChange={setTheme} className={naturalIconClass} style={iconStyle} aria-label={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"} title={theme === "dark" ? "切换到浅色主题" : "切换到深色主题"} />
-            <VersionReleaseModal style={versionStyle} />
-            <GitHubLink className={cn("bg-transparent hover:bg-transparent dark:hover:bg-transparent", gitHubClassName)} style={gitHubStyle} />
+            <button type="button" className={cn(iconClass, compactOnMobile && "hidden sm:inline-flex")} style={iconStyle} onClick={() => setLocale(locale === "zh-CN" ? "en" : "zh-CN")} aria-label={t("common.language")} title={locale === "zh-CN" ? t("common.switchToEnglish") : t("common.switchToChinese")}>
+                <Languages className="size-4" />
+            </button>
+            <AnimatedThemeToggler theme={theme} onThemeChange={setTheme} className={cn(iconClass, compactOnMobile && "hidden sm:inline-flex")} style={iconStyle} aria-label={theme === "dark" ? t("common.switchToLightTheme") : t("common.switchToDarkTheme")} title={theme === "dark" ? t("common.lightTheme") : t("common.darkTheme")} />
             {onOpenShortcuts ? (
-                <button type="button" className={naturalIconClass} style={iconStyle} onClick={onOpenShortcuts} aria-label="快捷键" title="快捷键">
+                <button type="button" className={iconClass} style={iconStyle} onClick={onOpenShortcuts} aria-label={t("common.shortcuts")} title={t("common.shortcuts")}>
                     <Keyboard className="size-4" />
                 </button>
             ) : null}

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Select } from "antd";
 
+import { useI18n } from "@/i18n/i18n-provider";
 import { cn } from "@/lib/utils";
 
 const sizeOptions = ["auto", "1:1", "3:2", "2:3", "4:3", "3:4", "16:9", "9:16"];
@@ -14,6 +15,7 @@ type CanvasSizePickerProps = {
 };
 
 export function CanvasSizePicker({ value, className, onChange }: CanvasSizePickerProps) {
+    const { t } = useI18n();
     const rootRef = useRef<HTMLDivElement>(null);
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -44,7 +46,7 @@ export function CanvasSizePicker({ value, className, onChange }: CanvasSizePicke
                 className={cn("canvas-compact-control canvas-control-select h-full w-full")}
                 value={value || undefined}
                 searchValue={search}
-                placeholder="比例"
+                placeholder={t("canvas.size.placeholder")}
                 options={options}
                 popupMatchSelectWidth={false}
                 popupRender={(menu) => (

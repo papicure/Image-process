@@ -6,5 +6,6 @@ node_modules/
 data/
 *.log
 *.tsbuildinfo
+web/tmp-visual-audit*/
 .DS_Store
 .idea

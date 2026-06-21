@@ -3,28 +3,28 @@ import { theme as antdTheme } from "antd";
 
 const neutral = {
     light: {
-        primary: "#171717",
-        primaryHover: "#000000",
+        primary: "#d97706",
+        primaryHover: "#b45309",
         primaryText: "#ffffff",
-        menuBg: "#f5f5f5",
-        menuText: "#171717",
-        selectActiveBg: "#f5f5f5",
-        selectSelectedBg: "#f0f0f0",
-        selectText: "#171717",
-        tableSelectedBg: "rgba(17, 17, 17, 0.05)",
-        tableSelectedHoverBg: "rgba(17, 17, 17, 0.08)",
+        menuBg: "#eef0f3",
+        menuText: "#111318",
+        selectActiveBg: "#eef0f3",
+        selectSelectedBg: "rgba(217, 119, 6, 0.14)",
+        selectText: "#111318",
+        tableSelectedBg: "rgba(217, 119, 6, 0.08)",
+        tableSelectedHoverBg: "rgba(217, 119, 6, 0.12)",
     },
     dark: {
-        primary: "#fafafa",
-        primaryHover: "#ffffff",
-        primaryText: "#171717",
-        menuBg: "#262626",
-        menuText: "#fafafa",
-        selectActiveBg: "#262626",
-        selectSelectedBg: "#333333",
-        selectText: "#fafafa",
-        tableSelectedBg: "rgba(255, 255, 255, 0.08)",
-        tableSelectedHoverBg: "rgba(255, 255, 255, 0.12)",
+        primary: "#f59e0b",
+        primaryHover: "#fbbf24",
+        primaryText: "#060708",
+        menuBg: "#131619",
+        menuText: "#f4f4f5",
+        selectActiveBg: "#131619",
+        selectSelectedBg: "#191d21",
+        selectText: "#f4f4f5",
+        tableSelectedBg: "rgba(245, 158, 11, 0.12)",
+        tableSelectedHoverBg: "rgba(245, 158, 11, 0.18)",
     },
 };
 
@@ -33,7 +33,7 @@ export function getAntThemeConfig(dark: boolean): ThemeConfig {
 
     return {
         algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
-        cssVar: { key: dark ? "infinite-canvas-dark" : "infinite-canvas-light" },
+        cssVar: { key: dark ? "papicanvas-dark" : "papicanvas-light" },
         token: {
             colorPrimary: color.primary,
             colorInfo: color.primary,

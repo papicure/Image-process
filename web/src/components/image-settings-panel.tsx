@@ -3,14 +3,16 @@
 import { type ReactNode, useState } from "react";
 import { ConfigProvider, Switch } from "antd";
 
+import { tr } from "@/i18n/runtime";
+import { useI18n } from "@/i18n/i18n-provider";
 import { type CanvasTheme } from "@/lib/canvas-theme";
 import type { AiConfig } from "@/stores/use-config-store";
 
 const qualityOptions = [
-    { value: "auto", label: "自动" },
-    { value: "high", label: "高" },
-    { value: "medium", label: "中" },
-    { value: "low", label: "低" },
+    { value: "auto" },
+    { value: "high" },
+    { value: "medium" },
+    { value: "low" },
 ];
 const DIMENSION_STEP = 16;
 
@@ -40,7 +42,8 @@ type ImageSettingsPanelProps = {
     quickCount?: number;
 };
 
-export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] space-y-4 rounded-2xl px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = true, className = "w-[320px] space-y-4 rounded-lg px-1 py-0.5", maxCount = 15, quickCount = 10 }: ImageSettingsPanelProps) {
+    const { t } = useI18n();
     const [snapDimensionToStep, setSnapDimensionToStep] = useState(true);
     const quality = config.quality || "auto";
     const count = Math.max(1, Math.min(maxCount, Math.floor(Math.abs(Number(config.count)) || 1)));
@@ -69,25 +72,25 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     if (document.activeElement instanceof HTMLInputElement && event.currentTarget.contains(document.activeElement)) document.activeElement.blur();
                 }}
             >
-                {showTitle ? <div className="text-lg font-semibold">图像设置</div> : null}
+                {showTitle ? <div className="text-lg font-semibold">{t("settings.image.title")}</div> : null}
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>质量</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{t("settings.image.quality")}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {qualityOptions.map((item) => (
                             <OptionPill key={item.value} selected={quality === item.value} theme={theme} onClick={() => onConfigChange("quality", item.value)}>
-                                {item.label}
+                                {imageQualityLabel(item.value)}
                             </OptionPill>
                         ))}
                     </div>
                 </div>
                 <div className="space-y-2.5">
                     <div className="flex items-center justify-between gap-3">
-                        <SettingTitle color={theme.node.muted}>尺寸</SettingTitle>
+                        <SettingTitle color={theme.node.muted}>{t("settings.image.size")}</SettingTitle>
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-medium" style={{ color: theme.node.muted }}>
-                                16倍数对齐
+                                {t("settings.image.snap16")}
                             </span>
-                            <span title="输入完成后自动向上补成 16 的倍数" onMouseDown={(event) => event.stopPropagation()}>
+                            <span title={t("settings.image.snap16Title")} onMouseDown={(event) => event.stopPropagation()}>
                                 <Switch size="small" checked={snapDimensionToStep} onChange={setSnapDimensionToStep} />
                             </span>
                         </div>
@@ -99,14 +102,14 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     </div>
                 </div>
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>宽高比</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{t("settings.image.aspectRatio")}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {aspectOptions.map((item) => (
                             <button
                                 key={item.value}
                                 type="button"
-                                className="flex h-[72px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border bg-transparent text-sm transition hover:opacity-80"
-                                style={{ borderColor: selectedAspect?.value === item.value ? theme.node.text : theme.node.stroke, background: "transparent", color: theme.node.text }}
+                                className="flex h-[72px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border bg-transparent text-sm transition hover:opacity-80"
+                                style={{ borderColor: selectedAspect?.value === item.value ? theme.node.activeStroke : theme.node.stroke, background: "transparent", boxShadow: selectedAspect?.value === item.value ? `0 0 0 1px ${theme.node.activeStroke}` : "none", color: theme.node.text }}
                                 onMouseDown={(event) => event.stopPropagation()}
                                 onClick={() => selectAspect(item.value)}
                             >
@@ -117,11 +120,11 @@ export function ImageSettingsPanel({ config, onConfigChange, theme, showTitle = 
                     </div>
                 </div>
                 <div className="space-y-2.5">
-                    <SettingTitle color={theme.node.muted}>生成张数</SettingTitle>
+                    <SettingTitle color={theme.node.muted}>{t("settings.image.count")}</SettingTitle>
                     <div className="grid grid-cols-4 gap-2.5">
                         {Array.from({ length: quickCount }, (_, index) => index + 1).map((value) => (
                             <OptionPill key={value} selected={count === value} theme={theme} onClick={() => onConfigChange("count", String(value))}>
-                                {value} 张
+                                {t("workbench.image.count", { count: value })}
                             </OptionPill>
                         ))}
                         <CountInput value={count} max={maxCount} theme={theme} onChange={(value) => onConfigChange("count", String(value || 1))} />
@@ -146,7 +149,7 @@ export function ImageSettingsTheme({ theme, children }: { theme: CanvasTheme; ch
 }
 
 export function imageQualityLabel(value: string) {
-    return ({ auto: "自动", high: "高", medium: "中", low: "低" } as Record<string, string>)[value] || value;
+    return ({ auto: tr("settings.image.qualityAuto"), high: tr("settings.image.qualityHigh"), medium: tr("settings.image.qualityMedium"), low: tr("settings.image.qualityLow") } as Record<string, string>)[value] || value;
 }
 
 export function imageSizeLabel(size: string) {
@@ -157,8 +160,8 @@ function OptionPill({ selected, theme, onClick, children }: { selected: boolean;
     return (
         <button
             type="button"
-            className="h-9 cursor-pointer rounded-full border px-2 text-sm transition hover:opacity-80"
-            style={{ background: "transparent", borderColor: selected ? theme.node.text : theme.node.stroke, color: theme.node.text }}
+            className="h-9 cursor-pointer rounded-md border px-2 text-sm transition hover:opacity-80"
+            style={{ background: "transparent", borderColor: selected ? theme.node.activeStroke : theme.node.stroke, boxShadow: selected ? `0 0 0 1px ${theme.node.activeStroke}` : "none", color: theme.node.text }}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={onClick}
         >
@@ -175,7 +178,7 @@ function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange 
     };
 
     return (
-        <label className="flex h-9 overflow-hidden rounded-xl text-sm" style={{ background: theme.node.fill, color: theme.node.text, opacity: disabled ? 0.55 : 1 }}>
+        <label className="flex h-9 overflow-hidden rounded-md text-sm" style={{ background: theme.node.fill, color: theme.node.text, opacity: disabled ? 0.55 : 1 }}>
             <span className="grid w-9 place-items-center" style={{ color: theme.node.muted }}>
                 {prefix}
             </span>
@@ -198,7 +201,7 @@ function DimensionInput({ prefix, value, disabled, theme, alignToStep, onChange 
 
 function CountInput({ value, max, theme, onChange }: { value: number; max: number; theme: CanvasTheme; onChange: (value: number | null) => void }) {
     return (
-        <label className="col-span-2 flex h-9 overflow-hidden rounded-full border text-sm" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
+        <label className="col-span-2 flex h-9 overflow-hidden rounded-md border text-sm" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
             <input
                 type="number"
                 min={1}

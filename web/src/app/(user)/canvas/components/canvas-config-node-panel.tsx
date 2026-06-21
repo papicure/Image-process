@@ -5,6 +5,7 @@ import { Image as ImageIcon, LoaderCircle, MessageSquare, Music2, Play, Settings
 import { Button, Segmented } from "antd";
 
 import { ModelPicker } from "@/components/model-picker";
+import { useI18n } from "@/i18n/i18n-provider";
 import { defaultConfig, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
 import { CreditSymbol, requestCreditCost } from "@/constant/credits";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -25,6 +26,7 @@ type CanvasConfigNodePanelProps = {
 };
 
 export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigChange, onGenerate, onStop, onComposerToggle }: CanvasConfigNodePanelProps) {
+    const { t } = useI18n();
     const globalConfig = useEffectiveConfig();
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
@@ -40,7 +42,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
     return (
         <div className="flex h-full w-full cursor-move flex-col px-3 pb-3 pt-7 text-sm" style={{ color: theme.node.text }} onWheel={(event) => event.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between gap-3">
-                <div className="shrink-0 text-sm font-semibold">生成配置</div>
+                <div className="shrink-0 text-sm font-semibold">{t("canvas.nodeToolbar.config")}</div>
                 <div className="cursor-default" onMouseDown={(event) => event.stopPropagation()}>
                     <Segmented
                         size="small"
@@ -53,7 +55,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                 label: (
                                     <span className="inline-flex items-center gap-1">
                                         <ImageIcon className="size-3.5" />
-                                        生图
+                                        {t("canvas.nodeToolbar.generateImage")}
                                     </span>
                                 ),
                             },
@@ -62,7 +64,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                 label: (
                                     <span className="inline-flex items-center gap-1">
                                         <MessageSquare className="size-3.5" />
-                                        文本
+                                        {t("canvas.nodeType.text")}
                                     </span>
                                 ),
                             },
@@ -71,7 +73,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                 label: (
                                     <span className="inline-flex items-center gap-1">
                                         <Video className="size-3.5" />
-                                        视频
+                                        {t("canvas.nodeType.video")}
                                     </span>
                                 ),
                             },
@@ -80,7 +82,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                 label: (
                                     <span className="inline-flex items-center gap-1">
                                         <Music2 className="size-3.5" />
-                                        音频
+                                        {t("canvas.nodeType.audio")}
                                     </span>
                                 ),
                             },
@@ -90,13 +92,13 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
             </div>
 
             <div className="mb-2 flex flex-wrap gap-1.5">
-                <InputChip label="提示词" value={`${inputSummary.textCount} 个`} style={chipStyle} />
-                <InputChip label="参考图" value={`${inputSummary.imageCount} 张`} style={chipStyle} />
-                <InputChip label="参考视频" value={`${inputSummary.videoCount} 个`} style={chipStyle} />
-                <InputChip label="参考音频" value={`${inputSummary.audioCount} 个`} style={chipStyle} />
+                <InputChip label={t("workbench.common.prompt")} value={t("canvas.config.count.items", { count: inputSummary.textCount })} style={chipStyle} />
+                <InputChip label={t("workbench.image.references")} value={t("workbench.image.count", { count: inputSummary.imageCount })} style={chipStyle} />
+                <InputChip label={t("workbench.video.videoReferences")} value={t("canvas.config.count.items", { count: inputSummary.videoCount })} style={chipStyle} />
+                <InputChip label={t("workbench.video.audioReferences")} value={t("canvas.config.count.items", { count: inputSummary.audioCount })} style={chipStyle} />
                 <button type="button" className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md border px-2 text-[11px]" style={chipStyle} onMouseDown={(event) => event.stopPropagation()} onClick={onComposerToggle}>
                     <Settings2 className="size-3.5" />
-                    组装提示词
+                    {t("canvas.config.composePrompt")}
                 </button>
             </div>
 
@@ -124,7 +126,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                         <>
                             <LoaderCircle className="size-4 animate-spin" />
                             <Square className="size-3.5 fill-current" />
-                            <span>停止</span>
+                            <span>{t("canvas.config.stop")}</span>
                         </>
                     ) : (
                         <>
@@ -133,7 +135,7 @@ export function CanvasConfigNodePanel({ node, isRunning, inputSummary, onConfigC
                                 {credits.toLocaleString()}
                             </span>
                             <Play className="size-4" />
-                            <span>开始生成</span>
+                            <span>{t("workbench.common.generate")}</span>
                         </>
                     )}
                 </span>

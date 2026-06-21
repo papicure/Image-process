@@ -29,9 +29,7 @@ export async function POST(request: NextRequest) {
     const timer = setTimeout(() => controller.abort(), WEBDAV_PROXY_TIMEOUT_MS);
     try {
         const body = method === "GET" || method === "HEAD" ? undefined : await request.arrayBuffer();
-        console.log(`[webdav-proxy] ${method} ${url.href} ${body?.byteLength || 0}B`);
         const response = await fetch(url, { method, headers, body: body?.byteLength ? body : undefined, signal: controller.signal });
-        console.log(`[webdav-proxy] ${method} ${url.href} -> ${response.status}`);
         return new Response(method === "HEAD" ? null : response.body, {
             status: response.status,
             headers: responseHeaders(response.headers),

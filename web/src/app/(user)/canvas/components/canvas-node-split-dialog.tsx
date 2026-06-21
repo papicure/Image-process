@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button, InputNumber, Modal } from "antd";
 import { Grid2x2 } from "lucide-react";
 
+import { useI18n } from "@/i18n/i18n-provider";
 import { readImageMeta } from "@/lib/image-utils";
 import type { ImageSplitParams } from "../utils/canvas-image-data";
 
@@ -13,6 +14,7 @@ const defaultParams: CanvasImageSplitParams = { rows: 2, columns: 2 };
 const maxGridSize = 12;
 
 export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { dataUrl: string; open: boolean; onClose: () => void; onConfirm: (params: CanvasImageSplitParams) => void }) {
+    const { t } = useI18n();
     const [params, setParams] = useState(defaultParams);
     const [image, setImage] = useState<{ width: number; height: number } | null>(null);
     const total = params.rows * params.columns;
@@ -37,37 +39,37 @@ export function CanvasNodeSplitDialog({ dataUrl, open, onClose, onConfirm }: { d
         <Modal title={null} open={open && Boolean(dataUrl)} onCancel={onClose} footer={null} width={780} centered destroyOnHidden>
             <div className="space-y-5">
                 <div>
-                    <h2 className="text-xl font-semibold">切分图片</h2>
-                    <p className="mt-1 text-sm opacity-60">生成 {total} 个图片子节点，并按原图网格排列到画布右侧</p>
+                    <h2 className="text-xl font-semibold">{t("canvas.dialog.split.title")}</h2>
+                    <p className="mt-1 text-sm opacity-60">{t("canvas.dialog.split.description", { count: total })}</p>
                 </div>
                 <div className="grid gap-6 md:grid-cols-[minmax(260px,1fr)_280px]">
-                    <div className="rounded-xl border p-4">
-                        <div className="grid min-h-[300px] place-items-center rounded-lg bg-black/5">
-                            <div className="relative inline-block max-w-full overflow-hidden rounded-lg bg-black shadow-xl">
-                                <img src={dataUrl} alt="" className="block max-h-[340px] max-w-full object-contain opacity-95" draggable={false} />
+                    <div className="rounded-lg border p-4" style={{ borderColor: "var(--papi-border)", background: "var(--papi-panel)" }}>
+                        <div className="grid min-h-[300px] place-items-center rounded-lg" style={{ background: "var(--papi-bg)" }}>
+                            <div className="relative inline-block max-w-full overflow-hidden rounded-lg border bg-black shadow-xl" style={{ borderColor: "var(--papi-border)" }}>
+                                <img src={dataUrl} alt={t("canvas.dialog.common.sourceImage")} className="block max-h-[340px] max-w-full object-contain opacity-95" draggable={false} />
                                 <SplitGrid rows={params.rows} columns={params.columns} />
                             </div>
                         </div>
                         <div className="mt-3 flex items-center justify-between text-sm">
-                            <span className="opacity-60">原图</span>
-                            <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : "读取中"}</span>
+                            <span className="opacity-60">{t("canvas.dialog.common.sourceImage")}</span>
+                            <span className="font-semibold">{image ? `${image.width} x ${image.height} px` : t("common.loading")}</span>
                         </div>
                     </div>
                     <div className="space-y-5 py-2">
-                        <NumberField label="行数" value={params.rows} onChange={(value) => update("rows", value)} />
-                        <NumberField label="列数" value={params.columns} onChange={(value) => update("columns", value)} />
-                        <div className="rounded-xl border px-4 py-3 text-sm">
+                        <NumberField label={t("canvas.dialog.split.rows")} value={params.rows} onChange={(value) => update("rows", value)} />
+                        <NumberField label={t("canvas.dialog.split.columns")} value={params.columns} onChange={(value) => update("columns", value)} />
+                        <div className="rounded-lg border px-4 py-3 text-sm" style={{ borderColor: "var(--papi-border)", background: "var(--papi-panel)" }}>
                             <div className="flex items-center justify-between">
-                                <span className="opacity-60">子节点</span>
-                                <span className="font-semibold">{total} 个</span>
+                                <span className="opacity-60">{t("canvas.dialog.split.childNodes")}</span>
+                                <span className="font-semibold">{t("canvas.card.nodes", { count: total })}</span>
                             </div>
                             <div className="mt-2 flex items-center justify-between">
-                                <span className="opacity-60">单块约</span>
-                                <span className="font-semibold">{pieceSize ? `${pieceSize.width} x ${pieceSize.height}` : "未知"}</span>
+                                <span className="opacity-60">{t("canvas.dialog.split.pieceSize")}</span>
+                                <span className="font-semibold">{pieceSize ? `${pieceSize.width} x ${pieceSize.height}` : t("common.unknown")}</span>
                             </div>
                         </div>
                         <Button type="primary" size="large" className="w-full" icon={<Grid2x2 className="size-4" />} onClick={() => onConfirm(params)}>
-                            生成子节点
+                            {t("canvas.dialog.split.generate")}
                         </Button>
                     </div>
                 </div>

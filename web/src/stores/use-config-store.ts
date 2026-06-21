@@ -61,6 +61,9 @@ export type ModelCapability = "image" | "video" | "text" | "audio";
 const CHANNEL_MODEL_SEPARATOR = "::";
 const OPENAI_BASE_URL = "https://api.openai.com";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
+const DEFAULT_CHANNEL_NAME = "Default channel";
+const NEW_CHANNEL_NAME = "New channel";
+const CHANNEL_NAME_PREFIX = "Channel";
 
 export const defaultConfig: AiConfig = {
     channelMode: "local",
@@ -70,7 +73,7 @@ export const defaultConfig: AiConfig = {
     channels: [
         {
             id: "default",
-            name: "默认渠道",
+            name: DEFAULT_CHANNEL_NAME,
             baseUrl: OPENAI_BASE_URL,
             apiKey: "",
             apiFormat: "openai",
@@ -107,7 +110,7 @@ export const defaultWebdavSyncConfig: WebdavSyncConfig = {
     url: "",
     username: "",
     password: "",
-    directory: "infinite-canvas",
+    directory: "papicanvas",
     lastSyncedAt: "",
 };
 
@@ -255,7 +258,7 @@ export function createModelChannel(channel?: Partial<ModelChannel>): ModelChanne
     const apiFormat = normalizeApiFormat(channel?.apiFormat);
     return {
         id: channel?.id?.trim() || nanoid(),
-        name: channel?.name?.trim() || "新渠道",
+        name: channel?.name?.trim() || NEW_CHANNEL_NAME,
         baseUrl: channel?.baseUrl?.trim() || defaultBaseUrlForApiFormat(apiFormat),
         apiKey: channel?.apiKey || "",
         apiFormat,
@@ -285,7 +288,7 @@ export function modelOptionLabel(config: AiConfig, value: string) {
     const decoded = decodeChannelModel(value);
     if (!decoded) return value;
     const channel = config.channels.find((item) => item.id === decoded.channelId);
-    return channel ? `${decoded.model}（${channel.name}）` : decoded.model;
+    return channel ? `${decoded.model} (${channel.name})` : decoded.model;
 }
 
 export function modelOptionsFromChannels(channels: ModelChannel[]) {
@@ -300,15 +303,16 @@ export function normalizeModelOptionValue(value: string | undefined, channels: M
         const channel = channels.find((item) => item.id === decoded.channelId);
         return channel && channel.models.includes(decoded.model) ? model : "";
     }
-    const channel = channels.find((item) => item.models.includes(decoded?.model || model)) || channels[0];
-    return channel && channel.models.includes(decoded?.model || model) ? encodeChannelModel(channel.id, decoded?.model || model) : model;
+    const rawModel = model;
+    const channel = channels.find((item) => item.models.includes(rawModel)) || channels[0];
+    return channel && channel.models.includes(rawModel) ? encodeChannelModel(channel.id, rawModel) : model;
 }
 
 export function resolveModelChannel(config: AiConfig, value: string) {
     const decoded = decodeChannelModel(value);
     const model = decoded?.model || value;
     const matched = decoded ? config.channels.find((channel) => channel.id === decoded.channelId) : config.channels.find((channel) => channel.models.includes(model));
-    return matched || config.channels[0] || createModelChannel({ id: "default", name: "默认渠道", baseUrl: config.baseUrl, apiKey: config.apiKey, apiFormat: config.apiFormat, models: config.models.map(modelOptionName) });
+    return matched || config.channels[0] || createModelChannel({ id: "default", name: DEFAULT_CHANNEL_NAME, baseUrl: config.baseUrl, apiKey: config.apiKey, apiFormat: config.apiFormat, models: config.models.map(modelOptionName) });
 }
 
 export function resolveModelRequestConfig(config: AiConfig, value: string) {
@@ -328,7 +332,7 @@ function normalizeChannels(config: AiConfig) {
         createModelChannel({
             ...channel,
             id: channel.id || (index === 0 ? "default" : `channel-${index + 1}`),
-            name: channel.name || (index === 0 ? "默认渠道" : `渠道 ${index + 1}`),
+            name: channel.name || (index === 0 ? DEFAULT_CHANNEL_NAME : `${CHANNEL_NAME_PREFIX} ${index + 1}`),
             models: uniqueRawModels(channel.models || []),
         }),
     );
@@ -336,7 +340,7 @@ function normalizeChannels(config: AiConfig) {
         channels.push(
             createModelChannel({
                 id: "default",
-                name: "默认渠道",
+                name: DEFAULT_CHANNEL_NAME,
                 baseUrl: config.baseUrl || defaultConfig.baseUrl,
                 apiKey: config.apiKey || "",
                 apiFormat: config.apiFormat || defaultConfig.apiFormat,

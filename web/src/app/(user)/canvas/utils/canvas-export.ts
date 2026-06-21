@@ -1,4 +1,4 @@
-import { saveAs } from "file-saver";
+﻿import { saveAs } from "file-saver";
 
 import { createZip } from "@/lib/zip";
 import { getMediaBlob } from "@/services/file-storage";
@@ -6,7 +6,7 @@ import { getImageBlob } from "@/services/image-storage";
 import type { CanvasExportAsset, CanvasExportFile } from "../export-types";
 import type { CanvasProject } from "../stores/use-canvas-store";
 
-export async function exportCanvasProjects(projects: CanvasProject[], fileName = "无限画布") {
+export async function exportCanvasProjects(projects: CanvasProject[], fileName = "PapiCanvas") {
     const zipFiles: { name: string; data: BlobPart }[] = [];
     const exportedProjects = await Promise.all(
         projects.map(async (project) => {
@@ -49,3 +49,4 @@ function fileExtension(mimeType: string, storageKey: string) {
     if (mimeType.includes("webm")) return "webm";
     return storageKey.startsWith("image:") ? "png" : "bin";
 }
+

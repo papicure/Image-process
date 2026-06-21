@@ -4,10 +4,12 @@ import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { App } from "antd";
 
+import { useI18n } from "@/i18n/i18n-provider";
 import { createModelChannel, useConfigStore } from "@/stores/use-config-store";
 
 export function ClientRootInit({ children }: { children: ReactNode }) {
     const { message } = App.useApp();
+    const { t } = useI18n();
     const handledConfigParams = useRef(false);
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const config = useConfigStore((state) => state.config);
@@ -38,13 +40,13 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
                             }
                           : channel,
                   )
-                : [createModelChannel({ id: "default", name: "默认渠道", baseUrl: baseUrl || undefined, apiKey: apiKey || "" })],
+                : [createModelChannel({ id: "default", name: t("settings.channel.defaultName"), baseUrl: baseUrl || undefined, apiKey: apiKey || "" })],
         );
         if (baseUrl) updateConfig("baseUrl", baseUrl);
         if (apiKey) updateConfig("apiKey", apiKey);
         openConfigDialog(false);
-        message.success("已导入本地直连配置");
-    }, [config.channels, message, openConfigDialog, updateConfig]);
+        message.success(t("settings.import.localConfigSuccess"));
+    }, [config.channels, message, openConfigDialog, t, updateConfig]);
 
     return <>{children}</>;
 }
