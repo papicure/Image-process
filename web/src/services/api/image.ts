@@ -1,5 +1,4 @@
-import axios from "axios";
-
+import { aiProxyFetch } from "@/services/api/ai-proxy-client";
 import { buildApiUrl, resolveModelRequestConfig, type AiConfig, type ModelChannel } from "@/stores/use-config-store";
 import { nanoid } from "nanoid";
 import { dataUrlToFile } from "@/lib/image-utils";
@@ -209,11 +208,6 @@ function parseImagePayload(payload: ImageApiResponse) {
 }
 
 function readAxiosError(error: unknown, fallback: string) {
-    if (axios.isCancel(error)) return tr("api.common.requestCanceled");
-    if (axios.isAxiosError<{ error?: { message?: string }; msg?: string; code?: number }>(error)) {
-        const responseData = error.response?.data;
-        return responseData?.msg || responseData?.error?.message || readStatusError(error.response?.status, fallback);
-    }
     if (error instanceof DOMException && error.name === "AbortError") return tr("api.common.requestCanceled");
     return error instanceof Error ? error.message : fallback;
 }
@@ -221,7 +215,7 @@ function readAxiosError(error: unknown, fallback: string) {
 function readStatusError(status: number | undefined, fallback: string) {
     if (status === 401 || status === 403) return tr("api.common.authFailed");
     if (status === 429) return tr("api.common.rateLimited");
-    return status ? `${fallback}：${status}` : fallback;
+    return status ? `${fallback} (${status})` : fallback;
 }
 
 function withSystemPrompt(config: AiConfig, prompt: string) {
@@ -346,6 +340,12 @@ async function readFetchError(response: Response, fallback: string) {
     }
 }
 
+async function requestJson<T>(url: string, init: RequestInit, fallback = tr("api.common.requestFailed")) {
+    const response = await aiProxyFetch(url, init);
+    if (!response.ok) throw new Error(await readFetchError(response, fallback));
+    return (await response.json()) as T;
+}
+
 function consumeResponseStreamBlock(block: string, state: ResponseStreamState, onDelta?: (text: string) => void) {
     const data = block
         .split(/\r?\n/)
@@ -389,7 +389,7 @@ function consumeResponseStreamText(state: ResponseStreamState, text: string, onD
 }
 
 async function requestStreamingResponse(config: AiConfig, body: Record<string, unknown>, onDelta?: (text: string) => void, options?: RequestOptions): Promise<ToolResponseResult> {
-    const response = await fetch(aiApiUrl(config, "/responses"), {
+    const response = await aiProxyFetch(aiApiUrl(config, "/responses"), {
         method: "POST",
         headers: { ...aiHeaders(config, "application/json"), Accept: "text/event-stream" },
         body: JSON.stringify({ ...body, stream: true }),
@@ -496,7 +496,7 @@ function toGeminiToolOptions(tools: ResponseFunctionTool[], toolChoice: ToolChoi
 }
 
 async function requestGeminiStreamingResponse(config: AiConfig, body: Record<string, unknown>, onDelta?: (text: string) => void, options?: RequestOptions): Promise<ToolResponseResult> {
-    const response = await fetch(`${geminiApiUrl(config, "streamGenerateContent")}?alt=sse`, {
+    const response = await aiProxyFetch(`${geminiApiUrl(config, "streamGenerateContent")}?alt=sse`, {
         method: "POST",
         headers: geminiHeaders(config),
         body: JSON.stringify(body),
@@ -583,15 +583,19 @@ async function requestGeminiImagesOnce(config: AiConfig, prompt: string, referen
     for (const image of references) {
         parts.push(toGeminiImagePart(await imageToDataUrl(image)));
     }
-    const response = await axios.post<GeminiPayload>(
+    const payload = await requestJson<GeminiPayload>(
         geminiApiUrl(config, "generateContent"),
         {
-            ...toGeminiBody(config, [{ role: "user", content: prompt }], { generationConfig: { responseModalities: ["TEXT", "IMAGE"] } }),
-            contents: [{ role: "user", parts }],
+            method: "POST",
+            headers: geminiHeaders(config),
+            body: JSON.stringify({
+                ...toGeminiBody(config, [{ role: "user", content: prompt }], { generationConfig: { responseModalities: ["TEXT", "IMAGE"] } }),
+                contents: [{ role: "user", parts }],
+            }),
+            signal: options?.signal,
         },
-        { headers: geminiHeaders(config), signal: options?.signal },
     );
-    return parseGeminiImagePayload(response.data);
+    return parseGeminiImagePayload(payload);
 }
 
 function parseGeminiImagePayload(payload: GeminiPayload) {
@@ -623,23 +627,24 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
     const quality = normalizeQuality(config.quality);
     const requestSize = resolveRequestSize(quality, config.size);
     try {
-        const response = await axios.post<ImageApiResponse>(
+        const payload = await requestJson<ImageApiResponse>(
             aiApiUrl(requestConfig, "/images/generations"),
             {
-                model: requestConfig.model,
-                prompt: withSystemPrompt(requestConfig, prompt),
-                n,
-                ...(quality ? { quality } : {}),
-                ...(requestSize ? { size: requestSize } : {}),
-                response_format: "b64_json",
-                output_format: IMAGE_OUTPUT_FORMAT,
-            },
-            {
+                method: "POST",
                 headers: aiHeaders(requestConfig, "application/json"),
+                body: JSON.stringify({
+                    model: requestConfig.model,
+                    prompt: withSystemPrompt(requestConfig, prompt),
+                    n,
+                    ...(quality ? { quality } : {}),
+                    ...(requestSize ? { size: requestSize } : {}),
+                    response_format: "b64_json",
+                    output_format: IMAGE_OUTPUT_FORMAT,
+                }),
                 signal: options?.signal,
             },
         );
-        const images = parseImagePayload(response.data);
+        const images = parseImagePayload(payload);
         return images;
     } catch (error) {
         throw new Error(readAxiosError(error, tr("api.common.requestFailed")));
@@ -677,8 +682,9 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
     if (mask) formData.set("mask", dataUrlToFile(mask));
 
     try {
-        const response = await axios.post<ImageApiResponse>(aiApiUrl(requestConfig, "/images/edits"), formData, { headers: aiHeaders(requestConfig), signal: options?.signal });
-        const images = parseImagePayload(response.data);
+        const response = await aiProxyFetch(aiApiUrl(requestConfig, "/images/edits"), { method: "POST", headers: aiHeaders(requestConfig), body: formData, signal: options?.signal });
+        if (!response.ok) throw new Error(await readFetchError(response, tr("api.common.requestFailed")));
+        const images = parseImagePayload((await response.json()) as ImageApiResponse);
         return images;
     } catch (error) {
         throw new Error(readAxiosError(error, tr("api.common.requestFailed")));
@@ -726,19 +732,20 @@ export async function requestToolResponse(config: AiConfig, messages: ResponseIn
 export async function fetchImageModels(config: Pick<AiConfig, "baseUrl" | "apiKey" | "apiFormat">) {
     try {
         if (config.apiFormat === "gemini") {
-            const response = await axios.get<GeminiPayload>(geminiApiUrl({ ...defaultGeminiConfig, ...config }), { headers: geminiHeaders({ ...defaultGeminiConfig, ...config }) });
-            validateGeminiPayload(response.data);
-            return (response.data.models || [])
+            const payload = await requestJson<GeminiPayload>(geminiApiUrl({ ...defaultGeminiConfig, ...config }), { method: "GET", headers: geminiHeaders({ ...defaultGeminiConfig, ...config }) }, tr("api.image.readModelsFailed"));
+            validateGeminiPayload(payload);
+            return (payload.models || [])
                 .map((model) => model.name?.replace(/^models\//, ""))
                 .filter((id): id is string => Boolean(id))
                 .sort((a, b) => a.localeCompare(b));
         }
-        const response = await axios.get<{ data?: Array<{ id?: string }>; error?: { message?: string } }>(buildApiUrl(config.baseUrl, "/models"), {
+        const payload = await requestJson<{ data?: Array<{ id?: string }>; error?: { message?: string } }>(buildApiUrl(config.baseUrl, "/models"), {
+            method: "GET",
             headers: {
                 Authorization: `Bearer ${config.apiKey}`,
             },
-        });
-        return (response.data.data || [])
+        }, tr("api.image.readModelsFailed"));
+        return (payload.data || [])
             .map((model) => model.id)
             .filter((id): id is string => Boolean(id))
             .sort((a, b) => a.localeCompare(b));

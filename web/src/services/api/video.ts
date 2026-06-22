@@ -1,5 +1,4 @@
-import axios from "axios";
-
+import { aiProxyFetch } from "@/services/api/ai-proxy-client";
 import { dataUrlToFile } from "@/lib/image-utils";
 import { tr } from "@/i18n/runtime";
 import { getMediaBlob, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
@@ -85,26 +84,26 @@ async function createOpenAIVideoTask(config: AiConfig, model: string, prompt: st
     const files = await Promise.all(references.slice(0, 7).map(async (image) => dataUrlToFile({ ...image, dataUrl: await imageToDataUrl(image) })));
     files.forEach((file) => body.append("input_reference[]", file));
     try {
-        const created = unwrapVideoResponse((await axios.post<ApiVideoResponse>(aiApiUrl(config, "/videos"), body, { headers: aiHeaders(config), signal: options?.signal })).data);
+        const created = unwrapVideoResponse(await requestJson<ApiVideoResponse>(aiApiUrl(config, "/videos"), { method: "POST", headers: aiHeaders(config), body, signal: options?.signal }, tr("api.video.createFailed")));
         if (!created.id) throw new Error(tr("api.video.noTaskId"));
         return { id: created.id, provider: "openai", model };
     } catch (error) {
-        throw new Error(readAxiosError(error, tr("api.video.createFailed")));
+        throw new Error(readRequestError(error, tr("api.video.createFailed")));
     }
 }
 
 async function pollOpenAIVideoTask(config: AiConfig, task: VideoGenerationTask, options?: RequestOptions): Promise<VideoGenerationTaskState> {
     try {
-        const video = unwrapVideoResponse((await axios.get<ApiVideoResponse>(aiApiUrl(config, `/videos/${task.id}`), { headers: aiHeaders(config), signal: options?.signal })).data);
+        const video = unwrapVideoResponse(await requestJson<ApiVideoResponse>(aiApiUrl(config, `/videos/${task.id}`), { method: "GET", headers: aiHeaders(config), signal: options?.signal }, tr("api.video.queryFailed")));
         if (video.status === "completed") {
-            const content = await axios.get<Blob>(aiApiUrl(config, `/videos/${task.id}/content`), { headers: aiHeaders(config), responseType: "blob", signal: options?.signal });
-            await assertVideoBlob(content.data);
-            return { status: "completed", result: { blob: content.data } };
+            const content = await requestBlob(aiApiUrl(config, `/videos/${task.id}/content`), { method: "GET", headers: aiHeaders(config), signal: options?.signal }, tr("api.video.downloadFailed"));
+            await assertVideoBlob(content);
+            return { status: "completed", result: { blob: content } };
         }
         if (video.status === "failed" || video.status === "cancelled") return { status: "failed", error: video.error?.message || tr("api.video.generationFailed") };
         return { status: "pending" };
     } catch (error) {
-        throw new Error(readAxiosError(error, tr("api.video.queryFailed")));
+        throw new Error(readRequestError(error, tr("api.video.queryFailed")));
     }
 }
 
@@ -127,17 +126,17 @@ async function createSeedanceTask(config: AiConfig, model: string, prompt: strin
     };
 
     try {
-        const created = unwrapSeedanceTask((await axios.post<ApiEnvelope<SeedanceTask>>(seedanceApiUrl(config), payload, { headers: aiHeaders(config, "application/json"), signal: options?.signal })).data);
+        const created = unwrapSeedanceTask(await requestJson<ApiEnvelope<SeedanceTask>>(seedanceApiUrl(config), { method: "POST", headers: aiHeaders(config, "application/json"), body: JSON.stringify(payload), signal: options?.signal }, tr("api.video.seedanceCreateFailed")));
         if (!created.id) throw new Error(tr("api.video.seedanceNoTaskId"));
         return { id: created.id, provider: "seedance", model };
     } catch (error) {
-        throw new Error(readAxiosError(error, tr("api.video.seedanceCreateFailed")));
+        throw new Error(readRequestError(error, tr("api.video.seedanceCreateFailed")));
     }
 }
 
 async function pollSeedanceTask(config: AiConfig, task: VideoGenerationTask, options?: RequestOptions): Promise<VideoGenerationTaskState> {
     try {
-        const state = unwrapSeedanceTask((await axios.get<ApiEnvelope<SeedanceTask>>(seedanceApiUrl(config, task.id), { headers: aiHeaders(config), signal: options?.signal })).data);
+        const state = unwrapSeedanceTask(await requestJson<ApiEnvelope<SeedanceTask>>(seedanceApiUrl(config, task.id), { method: "GET", headers: aiHeaders(config), signal: options?.signal }, tr("api.video.seedanceQueryFailed")));
         if (state.status === "succeeded") {
             const url = state.content?.video_url;
             if (!url) return { status: "failed", error: tr("api.video.seedanceNoUrl") };
@@ -146,7 +145,7 @@ async function pollSeedanceTask(config: AiConfig, task: VideoGenerationTask, opt
         if (state.status === "failed" || state.status === "cancelled" || state.status === "expired") return { status: "failed", error: state.error?.message || tr(state.status === "expired" ? "api.video.seedanceExpired" : "api.video.seedanceFailed") };
         return { status: "pending" };
     } catch (error) {
-        throw new Error(readAxiosError(error, tr("api.video.seedanceQueryFailed")));
+        throw new Error(readRequestError(error, tr("api.video.seedanceQueryFailed")));
     }
 }
 
@@ -220,11 +219,11 @@ async function resolveSeedanceAudioUrl(audio: ReferenceAudio) {
 
 async function videoResultFromUrl(url: string, options?: RequestOptions): Promise<VideoGenerationResult> {
     try {
-        const response = await axios.get<Blob>(url, { responseType: "blob", signal: options?.signal });
-        await assertVideoBlob(response.data);
-        return { blob: response.data };
+        const blob = await requestBlob(url, { method: "GET", headers: { Accept: "video/*,*/*" }, signal: options?.signal }, tr("api.video.downloadFailed"));
+        await assertVideoBlob(blob);
+        return { blob };
     } catch (error) {
-        if (axios.isCancel(error) || options?.signal?.aborted) throw error;
+        if (options?.signal?.aborted) throw error;
         return { url, mimeType: "video/mp4" };
     }
 }
@@ -273,12 +272,7 @@ function unwrapEnvelope<T>(payload: ApiEnvelope<T>, emptyMessage: string): T {
     return payload as T;
 }
 
-function readAxiosError(error: unknown, fallback: string) {
-    if (axios.isCancel(error)) return tr("api.common.requestCanceled");
-    if (axios.isAxiosError<{ error?: { message?: string }; msg?: string; code?: number }>(error)) {
-        const responseData = error.response?.data;
-        return responseData?.msg || responseData?.error?.message || statusMessage(error.response?.status, fallback);
-    }
+function readRequestError(error: unknown, fallback: string) {
     if (error instanceof DOMException && error.name === "AbortError") return tr("api.common.requestCanceled");
     return error instanceof Error ? error.message : fallback;
 }
@@ -286,7 +280,30 @@ function readAxiosError(error: unknown, fallback: string) {
 function statusMessage(status: number | undefined, fallback: string) {
     if (status === 401 || status === 403) return tr("api.common.authFailed");
     if (status === 429) return tr("api.common.rateLimited");
-    return status ? `${fallback}（${status}）` : fallback;
+    return status ? `${fallback} (${status})` : fallback;
+}
+
+async function requestJson<T>(url: string, init: RequestInit, fallback: string) {
+    const response = await aiProxyFetch(url, init);
+    if (!response.ok) throw new Error(await readFetchError(response, fallback));
+    return (await response.json()) as T;
+}
+
+async function requestBlob(url: string, init: RequestInit, fallback: string) {
+    const response = await aiProxyFetch(url, init);
+    if (!response.ok) throw new Error(await readFetchError(response, fallback));
+    return response.blob();
+}
+
+async function readFetchError(response: Response, fallback: string) {
+    const text = await response.text();
+    if (!text) return statusMessage(response.status, fallback);
+    try {
+        const payload = JSON.parse(text) as { code?: number; msg?: string; error?: { message?: string } };
+        return payload.msg || payload.error?.message || statusMessage(response.status, fallback);
+    } catch {
+        return text.slice(0, 300) || statusMessage(response.status, fallback);
+    }
 }
 
 async function assertVideoBlob(blob: Blob) {

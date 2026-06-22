@@ -1,5 +1,4 @@
-import axios from "axios";
-
+import { aiProxyFetch } from "@/services/api/ai-proxy-client";
 import { tr } from "@/i18n/runtime";
 import { audioMimeType, normalizeAudioFormatValue, normalizeAudioSpeedValue, normalizeAudioVoiceValue } from "@/lib/audio-generation";
 import { uploadMediaFile, type UploadedFile } from "@/services/file-storage";
@@ -26,22 +25,25 @@ export async function requestAudioGeneration(config: AiConfig, prompt: string, o
     const instructions = config.audioInstructions.trim();
 
     try {
-        const response = await axios.post<Blob>(
-            aiApiUrl(requestConfig, "/audio/speech"),
-            {
+        const response = await aiProxyFetch(aiApiUrl(requestConfig, "/audio/speech"), {
+            method: "POST",
+            headers: aiHeaders(requestConfig),
+            body: JSON.stringify({
                 model,
                 input: prompt,
                 voice: normalizeAudioVoiceValue(config.audioVoice),
                 response_format: format,
                 speed: Number(normalizeAudioSpeedValue(config.audioSpeed)),
                 ...(instructions ? { instructions } : {}),
-            },
-            { headers: aiHeaders(requestConfig), responseType: "blob", signal: options?.signal },
-        );
-        await assertAudioBlob(response.data);
-        return response.data.type.startsWith("audio/") ? response.data : new Blob([response.data], { type: audioMimeType(format) });
+            }),
+            signal: options?.signal,
+        });
+        if (!response.ok) throw new Error(await readFetchError(response, tr("api.audio.generationFailed")));
+        const blob = await response.blob();
+        await assertAudioBlob(blob);
+        return blob.type.startsWith("audio/") ? blob : new Blob([blob], { type: audioMimeType(format) });
     } catch (error) {
-        throw new Error(readAxiosError(error, tr("api.audio.generationFailed")));
+        throw new Error(readRequestError(error, tr("api.audio.generationFailed")));
     }
 }
 
@@ -69,17 +71,24 @@ async function assertAudioBlob(blob: Blob) {
     if (payload.error?.message) throw new Error(payload.error.message);
 }
 
-function readAxiosError(error: unknown, fallback: string) {
-    if (axios.isCancel(error)) return tr("api.common.requestCanceled");
-    if (axios.isAxiosError<{ error?: { message?: string }; msg?: string; code?: number }>(error)) {
-        const responseData = error.response?.data;
-        return responseData?.msg || responseData?.error?.message || statusMessage(error.response?.status, fallback);
-    }
+function readRequestError(error: unknown, fallback: string) {
+    if (error instanceof DOMException && error.name === "AbortError") return tr("api.common.requestCanceled");
     return error instanceof Error ? error.message : fallback;
 }
 
 function statusMessage(status: number | undefined, fallback: string) {
     if (status === 401 || status === 403) return tr("api.common.authFailed");
     if (status === 429) return tr("api.common.rateLimited");
-    return status ? `${fallback}（${status}）` : fallback;
+    return status ? `${fallback} (${status})` : fallback;
+}
+
+async function readFetchError(response: Response, fallback: string) {
+    const text = await response.text();
+    if (!text) return statusMessage(response.status, fallback);
+    try {
+        const payload = JSON.parse(text) as { code?: number; msg?: string; error?: { message?: string } };
+        return payload.msg || payload.error?.message || statusMessage(response.status, fallback);
+    } catch {
+        return text.slice(0, 300) || statusMessage(response.status, fallback);
+    }
 }
